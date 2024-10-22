@@ -5,3 +5,4 @@ beautifulsoup4
 selenium
 openpyxl
 thefuzz
+webdriver-manager
