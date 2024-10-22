@@ -1,22 +1,11 @@
-import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import pandas as pd
-import time
-import re
-from urllib.parse import quote
+import requests
 from bs4 import BeautifulSoup
-import random
+import pandas as pd
+import streamlit as st
+import re
 
-# Fonction de scraping adaptée pour Streamlit
 def scrape_leboncoin_occ(prix_min, prix_max, marque, modele, annee_min, annee_max, doors, seats, owner_type,
                          mileage_min, mileage_max, sort_by, order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code):
-
-    options = webdriver.EdgeOptions()
-    options.add_argument("--start-maximized")
-    options.add_argument("--incognito")
-
-    driver = webdriver.Edge(options=options)
 
     # Construction du dictionnaire des paramètres
     params = {
@@ -37,33 +26,24 @@ def scrape_leboncoin_occ(prix_min, prix_max, marque, modele, annee_min, annee_ma
         "vehicle_vsp": "avecpermis"
     }
 
-    # Ajouter les CV fiscaux si fournis
-    if cv_min and cv_max:
-        params["horsepower"] = f"{cv_min}-{cv_max}"
-
-    # Ajouter les CV DIN si fournis
-    if cv_din_min and cv_din_max:
-        params["horse_power_din"] = f"{cv_din_min}-{cv_din_max}"
-
-    # Encoder les paramètres
-    encoded_params = {key: quote(str(value)) for key, value in params.items()}
-
     # Construction de l'URL
     base_url = "https://www.leboncoin.fr/recherche"
-    query_string = "&".join([f"{key}={value}" for key, value in encoded_params.items()])
+    query_string = "&".join([f"{key}={value}" for key, value in params.items()])
     url = f"{base_url}?{query_string}"
 
-    st.write("URL générée:", url)  # Pour afficher l'URL générée sur Streamlit
+    st.write("URL générée:", url)  # Pour affichage dans Streamlit
 
-    driver.get(url)
-    time.sleep(random.uniform(2, 4))
+    # Récupération de la page avec requests
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+    response = requests.get(url, headers=headers)
 
-    # Capturer le contenu HTML de la page
-    page_source = driver.page_source
-    driver.quit()
+    # Vérifier si la requête a été réussie
+    if response.status_code != 200:
+        st.write(f"Erreur lors de la récupération des données: {response.status_code}")
+        return pd.DataFrame()
 
     # Analyser le contenu HTML avec BeautifulSoup
-    soup = BeautifulSoup(page_source, 'html.parser')
+    soup = BeautifulSoup(response.text, 'html.parser')
     data = []
     annonces = soup.find_all("p", {"data-qa-id": "aditem_title"})
     
