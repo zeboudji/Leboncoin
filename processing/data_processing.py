@@ -1,6 +1,6 @@
 # processing/data_processing.py
 
-from utils.helpers import (
+from helpers import (
     extraire_informations_titre,
     convertir_generation_en_nombre,
     extraire_modele_sans_generation
@@ -45,4 +45,3 @@ def compare_data(df_occitanie, df_france):
     df_comparaison['Différence_Kilométrage (km)'] = df_comparaison['Kilométrage_occitanie'] - df_comparaison['Kilométrage_france']
 
     return df_comparaison
-
