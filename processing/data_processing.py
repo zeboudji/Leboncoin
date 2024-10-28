@@ -1,6 +1,6 @@
 # processing/data_processing.py
 
-from helpers import (
+from .helpers import (
     extraire_informations_titre,
     convertir_generation_en_nombre,
     extraire_modele_sans_generation
