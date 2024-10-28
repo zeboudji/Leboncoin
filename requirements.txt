@@ -4,3 +4,5 @@ pandas
 selenium
 beautifulsoup4
 xlsxwriter
+openpyxl
+requests
