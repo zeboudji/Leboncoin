@@ -11,7 +11,7 @@ import pandas as pd
 import datetime
 
 from processing.data_processing import compare_data
-from utils.helpers import (
+from processing.helpers import (
     extraire_informations_titre,
     convertir_generation_en_nombre,
     extraire_modele_sans_generation,
