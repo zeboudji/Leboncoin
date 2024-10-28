@@ -9,9 +9,7 @@ def extraire_informations_titre(titre, marque):
 
     titre = titre.lower()
     marque = marque.lower()
-    # Supprimer la marque du titre
     titre_sans_marque = titre.replace(marque.lower(), '').strip()
-    # Supprimer les caractères spéciaux en gardant les espaces
     titre_sans_marque = re.sub(r'[^\w\s]', '', titre_sans_marque)
     mots = titre_sans_marque.split()
 
@@ -19,12 +17,10 @@ def extraire_informations_titre(titre, marque):
     generation = None
     carrosserie = ''
 
-    # Listes des mots clés
     types_carrosserie = ['sw', 'break', 'estate', 'berline', 'coupé', 'hatchback', 'hatch', 'suv',
                          'monospace', 'cabriolet', 'roadster', 'fourgon', 'pickup', 'limousine',
                          'ludospace', 'tourer', 'touring', 'avant', 'sportback', 'fastback']
 
-    # Expression régulière pour détecter la génération
     pattern_generation = r'génération\s+(\d+|[ivx]+)\b'
     match = re.search(pattern_generation, titre_sans_marque)
     if match:
