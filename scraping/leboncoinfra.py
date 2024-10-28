@@ -99,4 +99,3 @@ def scrape_france(
 
 if __name__ == "__main__":
     pass
-
