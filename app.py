@@ -59,7 +59,6 @@ def main():
     st.sidebar.header("Critères de Recherche")
 
     # Sélection des marques et modèles
-    # marques_modeles est maintenant accessible ici
 
     # Sélection des marques
     selected_marques = st.sidebar.multiselect("Marques", list(marques_modeles.keys()))
@@ -76,7 +75,80 @@ def main():
             all_modeles.extend(modeles)
         selected_modeles = st.sidebar.multiselect("Modèles", sorted(set(all_modeles)))
 
-    # ... (le reste de votre code reste inchangé)
+    # Prix
+    prix_min = st.sidebar.number_input("Prix Min (€)", min_value=0, value=5000, step=1000)
+    prix_max = st.sidebar.number_input("Prix Max (€)", min_value=0, value=15000, step=1000)
+
+    # Année
+    current_year = datetime.datetime.now().year
+    annee_min = st.sidebar.number_input("Année Min", min_value=2000, max_value=current_year, value=2010, step=1)
+    annee_max = st.sidebar.number_input("Année Max", min_value=2000, max_value=current_year, value=current_year, step=1)
+
+    # Kilométrage
+    mileage_min = st.sidebar.number_input("Kilométrage Min (km)", min_value=0, value=0, step=5000)
+    mileage_max = st.sidebar.number_input("Kilométrage Max (km)", min_value=0, value=150000, step=5000)
+
+    # Propriétaire
+    owner_private = st.sidebar.checkbox("Particulier", value=True)
+    owner_pro = st.sidebar.checkbox("Professionnel", value=True)
+
+    # Tri
+    sort_by = st.sidebar.selectbox("Trier par", ["Prix", "Kilométrage"])
+    order = st.sidebar.selectbox("Ordre", ["Ascendant", "Descendant"])
+
+    # Région
+    region_codes = {
+        "Auvergne-Rhône-Alpes": "r_22",
+        "Bourgogne-Franche-Comté": "r_21",
+        "Bretagne": "r_6",
+        "Centre-Val de Loire": "r_7",
+        "Corse": "r_94",
+        "Grand Est": "r_44",
+        "Hauts-de-France": "r_17",
+        "Île-de-France": "r_1",
+        "Normandie": "r_18",
+        "Nouvelle-Aquitaine": "r_54",
+        "Occitanie": "r_73",
+        "Pays de la Loire": "r_52",
+        "Provence-Alpes-Côte d'Azur": "r_93"
+    }
+    region_list = list(region_codes.keys())
+    selected_region = st.sidebar.selectbox("Sélectionnez la région", region_list)
+    region_code = region_codes[selected_region]
+
+    # Zone de recherche
+    search_area = st.sidebar.radio("Zone de recherche", ["Région sélectionnée", "France", "Les deux"])
+
+    # Options avancées
+    st.sidebar.header("Options Avancées")
+
+    # Chevaux fiscaux
+    cv_min = st.sidebar.number_input("CV Min", min_value=0, value=0, step=1)
+    cv_max = st.sidebar.number_input("CV Max", min_value=0, value=0, step=1)
+
+    # Chevaux DIN
+    cv_din_min = st.sidebar.number_input("CV DIN Min", min_value=0, value=0, step=1)
+    cv_din_max = st.sidebar.number_input("CV DIN Max", min_value=0, value=0, step=1)
+
+    # Portes et sièges
+    doors = st.sidebar.text_input("Nombre de portes", "5")
+    seats = st.sidebar.text_input("Nombre de sièges", "5,4")
+
+    # Carburant
+    carburants = {
+        "Essence": 1,
+        "Diesel": 2,
+        "Hybride": 3,
+        "Électrique": 4,
+        "GPL": 5,
+        "Gaz naturel (CNG)": 6,
+        "Autre": 7
+    }
+    selected_carburants = st.sidebar.multiselect("Carburant", list(carburants.keys()))
+
+    # Type de véhicule
+    types_vehicule = ["4x4", "berline", "break", "cabriolet", "citadine", "coupé", "monospace"]
+    selected_vehicle_types = st.sidebar.multiselect("Type de véhicule", types_vehicule)
 
     # Bouton pour lancer la recherche
     if st.sidebar.button("Lancer la recherche"):
@@ -98,8 +170,31 @@ def lancer_recherche(
     region_code, search_area, cv_min, cv_max, cv_din_min, cv_din_max,
     doors, seats, selected_carburants, selected_vehicle_types
 ):
-    # Vous pouvez maintenant accéder à marques_modeles ici
-    # ... (le reste de la fonction reste inchangé)
+    # Déterminer owner_type en fonction des cases cochées
+    if owner_private and owner_pro:
+        owner_type = "all"
+    elif owner_private:
+        owner_type = "private"
+    elif owner_pro:
+        owner_type = "pro"
+    else:
+        owner_type = "all"  # Par défaut si aucune case n'est cochée
+
+    # Récupérer les index des carburants sélectionnés
+    carburants = {
+        "Essence": 1,
+        "Diesel": 2,
+        "Hybride": 3,
+        "Électrique": 4,
+        "GPL": 5,
+        "Gaz naturel (CNG)": 6,
+        "Autre": 7
+    }
+    fuel_indexes = [str(carburants[carburant]) for carburant in selected_carburants]
+    fuel_params = ",".join(fuel_indexes)
+
+    # Type de véhicule
+    vehicle_type = ",".join(selected_vehicle_types) if selected_vehicle_types else ""
 
     # Si aucune marque ou modèle n'est sélectionné, utiliser tous
     if not selected_marques:
@@ -109,7 +204,57 @@ def lancer_recherche(
         for marque in selected_marques:
             selected_modeles.extend(marques_modeles[marque])
 
-    # ... (le reste de votre code)
+    # Boucle pour chaque paire marque-modèle
+    df_occ_total = pd.DataFrame()
+    df_fra_total = pd.DataFrame()
+    for marque in selected_marques:
+        modeles = [modele for modele in selected_modeles if modele in marques_modeles[marque]]
+        if not modeles:
+            modeles = marques_modeles[marque]
+        for modele in modeles:
+            # Scraper la région sélectionnée
+            if search_area in ["Région sélectionnée", "Les deux"]:
+                df_occ = scrape_occitanie(
+                    prix_min, prix_max, marque, modele, annee_min, annee_max,
+                    doors, seats, owner_type, mileage_min, mileage_max, sort_by,
+                    order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code
+                )
+                df_occ['Marque'] = marque
+                df_occ['Modele'] = modele
+                df_occ_total = pd.concat([df_occ_total, df_occ], ignore_index=True)
+
+            # Scraper la France
+            if search_area in ["France", "Les deux"]:
+                df_fra = scrape_france(
+                    prix_min, prix_max, marque, modele, annee_min, annee_max,
+                    doors, seats, owner_type, mileage_min, mileage_max, sort_by,
+                    order, vehicle_type, cv_min, cv_max
+                )
+                df_fra['Marque'] = marque
+                df_fra['Modele'] = modele
+                df_fra_total = pd.concat([df_fra_total, df_fra], ignore_index=True)
+
+    # Sauvegarder les résultats
+    df_occ_total.to_excel("resultats_occitanie.xlsx", index=False)
+    df_fra_total.to_excel("resultats_france.xlsx", index=False)
+
+    # Comparaison des données
+    df_comparaison = compare_data(df_occ_total, df_fra_total)
+
+    st.success("Recherche terminée")
+
+    # Afficher les résultats
+    st.subheader("Résultats de la comparaison")
+    st.dataframe(df_comparaison)
+
+    # Bouton pour télécharger les résultats
+    csv = df_comparaison.to_csv(index=False)
+    st.download_button(
+        label="Télécharger les résultats",
+        data=csv,
+        file_name='resultats_comparaison.csv',
+        mime='text/csv',
+    )
 
 if __name__ == "__main__":
     main()
