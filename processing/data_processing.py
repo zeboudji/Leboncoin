@@ -45,3 +45,4 @@ def compare_data(df_occitanie, df_france):
     df_comparaison['Différence_Kilométrage (km)'] = df_comparaison['Kilométrage_occitanie'] - df_comparaison['Kilométrage_france']
 
     return df_comparaison
+
