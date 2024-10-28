@@ -1,9 +1,5 @@
 streamlit
-ttkbootstrap
 pandas
 selenium
 beautifulsoup4
-xlsxwriter
-openpyxl
-requests
 webdriver-manager
