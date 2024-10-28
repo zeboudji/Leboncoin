@@ -35,10 +35,10 @@ def main():
 
     # Sélection des marques et modèles
     marques_modeles = {
-        "BMW": ["Série 1", "Série 2", "Série 3", "Série 4", "Série 5", "X1", "X3", "X5", "X6"],
+        "BMW": ["Serie1", "Serie2", "Serie3", "Serie4", "Serie5", "X1", "X3", "X5", "X6"],
         "AUDI": ["A1", "A3", "A4", "A6", "Q3", "Q5", "Q7", "Q8"],
-        "MERCEDES-BENZ": ["Classe A", "Classe B", "Classe C", "Classe E", "GLE", "GLA", "GLC", "CLS"],
-        "RENAULT": ["Clio", "Megane", "Espace", "Kadjar", "Captur", "Twingo", "Scénic", "Koleos", "Zoe"],
+        "MERCEDES": ["ClasseA", "ClasseB", "ClasseC", "ClasseE", "GLE", "GLA", "GLC", "CLS"],
+        "RENAULT": ["Clio", "Megane", "Espace", "Kadjar", "Captur", "Twingo", "Scenic", "Koleos", "Zoe"],
         "PEUGEOT": ["208", "2008", "308", "3008", "508", "5008", "Rifter"],
         "VOLKSWAGEN": ["Golf", "Polo", "Tiguan", "Passat", "T-Cross", "T-Roc", "Touareg"],
         "TOYOTA": ["Yaris", "Corolla", "RAV4", "C-HR", "Auris", "Camry", "Land Cruiser"],
@@ -96,19 +96,19 @@ def main():
 
     # Région
     region_codes = {
-        "Auvergne-Rhône-Alpes": "r_30",
-        "Bourgogne-Franche-Comté": "r_31",
+        "Auvergne-Rhône-Alpes": "r_22",
+        "Bourgogne-Franche-Comté": "r_21",
         "Bretagne": "r_6",
-        "Centre-Val de Loire": "r_37",
-        "Corse": "r_9",
-        "Grand Est": "r_33",
-        "Hauts-de-France": "r_32",
-        "Île-de-France": "r_12",
-        "Normandie": "r_34",
-        "Nouvelle-Aquitaine": "r_35",
-        "Occitanie": "r_36",
-        "Pays de la Loire": "r_18",
-        "Provence-Alpes-Côte d'Azur": "r_21"
+        "Centre-Val de Loire": "r_7",
+        "Corse": "r_94",
+        "Grand Est": "r_44",
+        "Hauts-de-France": "r_17",
+        "Île-de-France": "r_1",
+        "Normandie": "r_18",
+        "Nouvelle-Aquitaine": "r_54",
+        "Occitanie": "r_73",
+        "Pays de la Loire": "r_52",
+        "Provence-Alpes-Côte d'Azur": "r_93"
     }
     region_list = list(region_codes.keys())
     selected_region = st.sidebar.selectbox("Sélectionnez la région", region_list)
@@ -218,7 +218,7 @@ def lancer_recherche(
                     order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code
                 )
                 df_occ['Marque'] = marque
-                df_occ['Modèle'] = modele
+                df_occ['Modele'] = modele
                 df_occ_total = pd.concat([df_occ_total, df_occ], ignore_index=True)
 
             # Scraper la France
@@ -229,7 +229,7 @@ def lancer_recherche(
                     order, vehicle_type, cv_min, cv_max
                 )
                 df_fra['Marque'] = marque
-                df_fra['Modèle'] = modele
+                df_fra['Modele'] = modele
                 df_fra_total = pd.concat([df_fra_total, df_fra], ignore_index=True)
 
     # Sauvegarder les résultats
