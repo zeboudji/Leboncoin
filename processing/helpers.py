@@ -103,4 +103,3 @@ def create_google_maps_link(destination, origin):
     if pd.notna(destination):
         return f"{base_url}&origin={origin.replace(' ', '+')}&destination={destination.replace(' ', '+')}"
     return None
-
