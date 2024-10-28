@@ -1,24 +1,26 @@
 # app.py
 
+import sys
+import os
+
+# Ajouter le répertoire racine au PYTHONPATH
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import pandas as pd
-import os
-from scraping.leboncoinocc import scrape_occitanie
-from scraping.leboncoinfra import scrape_france
+import datetime
+
 from processing.data_processing import compare_data
 from utils.helpers import (
-    create_google_maps_link,
-    categoriser_vigilance,
-    convertir_generation_en_nombre,
     extraire_informations_titre,
+    convertir_generation_en_nombre,
     extraire_modele_sans_generation,
     est_en_france_metropolitaine,
-    marques_modeles,
-    carburants,
-    region_list,
-    region_codes
+    categoriser_vigilance,
+    create_google_maps_link
 )
-import datetime
+from scraping.leboncoinocc import scrape_occitanie
+from scraping.leboncoinfra import scrape_france
 
 def main():
     st.set_page_config(
@@ -28,10 +30,35 @@ def main():
 
     st.title("Recherche Leboncoin - Régions et France - By Youssef")
 
-    # Sidebar pour les critères de recherche
+    # Barre latérale pour les critères de recherche
     st.sidebar.header("Critères de Recherche")
 
-    # Marques et Modèles
+    # Sélection des marques et modèles
+    marques_modeles = {
+        "BMW": ["Série 1", "Série 2", "Série 3", "Série 4", "Série 5", "X1", "X3", "X5", "X6"],
+        "AUDI": ["A1", "A3", "A4", "A6", "Q3", "Q5", "Q7", "Q8"],
+        "MERCEDES-BENZ": ["Classe A", "Classe B", "Classe C", "Classe E", "GLE", "GLA", "GLC", "CLS"],
+        "RENAULT": ["Clio", "Megane", "Espace", "Kadjar", "Captur", "Twingo", "Scénic", "Koleos", "Zoe"],
+        "PEUGEOT": ["208", "2008", "308", "3008", "508", "5008", "Rifter"],
+        "VOLKSWAGEN": ["Golf", "Polo", "Tiguan", "Passat", "T-Cross", "T-Roc", "Touareg"],
+        "TOYOTA": ["Yaris", "Corolla", "RAV4", "C-HR", "Auris", "Camry", "Land Cruiser"],
+        "FORD": ["Fiesta", "Focus", "Mondeo", "Kuga", "Puma", "Mustang", "Edge"],
+        "NISSAN": ["Micra", "Juke", "Qashqai", "X-Trail", "Leaf", "Navara"],
+        "HYUNDAI": ["i10", "i20", "i30", "Tucson", "Kona", "Santa Fe", "Ioniq"],
+        "KIA": ["Picanto", "Rio", "Ceed", "Sportage", "Sorento", "Stinger"],
+        "HONDA": ["Civic", "Jazz", "CR-V", "HR-V", "Accord"],
+        "VOLVO": ["XC40", "XC60", "XC90", "S60", "S90", "V40", "V60"],
+        "FIAT": ["500", "Panda", "Tipo", "500X", "500L"],
+        "CITROEN": ["C1", "C3", "C4", "C5 Aircross", "Berlingo"],
+        "OPEL": ["Corsa", "Astra", "Insignia", "Crossland", "Grandland"],
+        "SEAT": ["Ibiza", "Leon", "Arona", "Ateca", "Tarraco"],
+        "SKODA": ["Fabia", "Octavia", "Karoq", "Kodiaq", "Superb"],
+        "TESLA": ["Model 3", "Model S", "Model X", "Model Y"],
+        "JEEP": ["Renegade", "Compass", "Cherokee", "Wrangler", "Grand Cherokee"],
+        "LAND ROVER": ["Range Rover", "Evoque", "Discovery", "Defender"]
+    }
+
+    # Sélection des marques
     selected_marques = st.sidebar.multiselect("Marques", list(marques_modeles.keys()))
     selected_modeles = []
     if selected_marques:
@@ -68,6 +95,22 @@ def main():
     order = st.sidebar.selectbox("Ordre", ["Ascendant", "Descendant"])
 
     # Région
+    region_codes = {
+        "Auvergne-Rhône-Alpes": "r_30",
+        "Bourgogne-Franche-Comté": "r_31",
+        "Bretagne": "r_6",
+        "Centre-Val de Loire": "r_37",
+        "Corse": "r_9",
+        "Grand Est": "r_33",
+        "Hauts-de-France": "r_32",
+        "Île-de-France": "r_12",
+        "Normandie": "r_34",
+        "Nouvelle-Aquitaine": "r_35",
+        "Occitanie": "r_36",
+        "Pays de la Loire": "r_18",
+        "Provence-Alpes-Côte d'Azur": "r_21"
+    }
+    region_list = list(region_codes.keys())
     selected_region = st.sidebar.selectbox("Sélectionnez la région", region_list)
     region_code = region_codes[selected_region]
 
@@ -90,6 +133,15 @@ def main():
     seats = st.sidebar.text_input("Nombre de sièges", "5,4")
 
     # Carburant
+    carburants = {
+        "Essence": 1,
+        "Diesel": 2,
+        "Hybride": 3,
+        "Électrique": 4,
+        "GPL": 5,
+        "Gaz naturel (CNG)": 6,
+        "Autre": 7
+    }
     selected_carburants = st.sidebar.multiselect("Carburant", list(carburants.keys()))
 
     # Type de véhicule
@@ -102,85 +154,105 @@ def main():
         if not owner_private and not owner_pro:
             st.error("Veuillez sélectionner au moins un type de propriétaire (Particulier ou Professionnel).")
         else:
-            # Déterminer owner_type en fonction des cases cochées
-            if owner_private and owner_pro:
-                owner_type = "all"
-            elif owner_private:
-                owner_type = "private"
-            elif owner_pro:
-                owner_type = "pro"
-            else:
-                owner_type = "all"  # Par défaut si aucune case n'est cochée
-
-            # Récupérer les index des carburants sélectionnés
-            fuel_indexes = [str(carburants[carburant]) for carburant in selected_carburants]
-            fuel_params = ",".join(fuel_indexes)
-
-            # Type de véhicule
-            vehicle_type = ",".join(selected_vehicle_types) if selected_vehicle_types else ""
-
-            # Si aucune marque ou modèle n'est sélectionné, utiliser tous
-            if not selected_marques:
-                selected_marques = list(marques_modeles.keys())
-            if not selected_modeles:
-                selected_modeles = []
-                for marque in selected_marques:
-                    selected_modeles.extend(marques_modeles[marque])
-
             with st.spinner("Recherche en cours..."):
-                # Scraping
-                df_occ_total = pd.DataFrame()
-                df_fra_total = pd.DataFrame()
-                for marque in selected_marques:
-                    modeles = [modele for modele in selected_modeles if modele in marques_modeles[marque]]
-                    if not modeles:
-                        modeles = marques_modeles[marque]
-                    for modele in modeles:
-                        # Scraper la région sélectionnée
-                        if search_area in ["Région sélectionnée", "Les deux"]:
-                            df_occ = scrape_occitanie(
-                                prix_min, prix_max, marque, modele, annee_min, annee_max,
-                                doors, seats, owner_type, mileage_min, mileage_max, sort_by,
-                                order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code
-                            )
-                            df_occ['Marque'] = marque
-                            df_occ['Modèle'] = modele
-                            df_occ_total = pd.concat([df_occ_total, df_occ], ignore_index=True)
-
-                        # Scraper la France
-                        if search_area in ["France", "Les deux"]:
-                            df_fra = scrape_france(
-                                prix_min, prix_max, marque, modele, annee_min, annee_max,
-                                doors, seats, owner_type, mileage_min, mileage_max, sort_by,
-                                order, vehicle_type, cv_min, cv_max
-                            )
-                            df_fra['Marque'] = marque
-                            df_fra['Modèle'] = modele
-                            df_fra_total = pd.concat([df_fra_total, df_fra], ignore_index=True)
-
-                # Sauvegarder les résultats
-                if not df_occ_total.empty:
-                    df_occ_total.to_excel("resultats_occitanie.xlsx", index=False)
-                if not df_fra_total.empty:
-                    df_fra_total.to_excel("resultats_france.xlsx", index=False)
-
-                # Comparaison des données
-                df_comparaison = compare_data(df_occ_total, df_fra_total)
-
-                st.success("Recherche terminée")
-
-                # Afficher les résultats
-                st.subheader("Résultats de la comparaison")
-                st.dataframe(df_comparaison)
-
-                # Bouton pour télécharger les résultats
-                csv = df_comparaison.to_csv(index=False)
-                st.download_button(
-                    label="Télécharger les résultats",
-                    data=csv,
-                    file_name='resultats_comparaison.csv',
-                    mime='text/csv',
+                lancer_recherche(
+                    selected_marques, selected_modeles, prix_min, prix_max, annee_min, annee_max,
+                    mileage_min, mileage_max, owner_private, owner_pro, sort_by, order,
+                    region_code, search_area, cv_min, cv_max, cv_din_min, cv_din_max,
+                    doors, seats, selected_carburants, selected_vehicle_types
                 )
+
+def lancer_recherche(
+    selected_marques, selected_modeles, prix_min, prix_max, annee_min, annee_max,
+    mileage_min, mileage_max, owner_private, owner_pro, sort_by, order,
+    region_code, search_area, cv_min, cv_max, cv_din_min, cv_din_max,
+    doors, seats, selected_carburants, selected_vehicle_types
+):
+    # Déterminer owner_type en fonction des cases cochées
+    if owner_private and owner_pro:
+        owner_type = "all"
+    elif owner_private:
+        owner_type = "private"
+    elif owner_pro:
+        owner_type = "pro"
+    else:
+        owner_type = "all"  # Par défaut si aucune case n'est cochée
+
+    # Récupérer les index des carburants sélectionnés
+    carburants = {
+        "Essence": 1,
+        "Diesel": 2,
+        "Hybride": 3,
+        "Électrique": 4,
+        "GPL": 5,
+        "Gaz naturel (CNG)": 6,
+        "Autre": 7
+    }
+    fuel_indexes = [str(carburants[carburant]) for carburant in selected_carburants]
+    fuel_params = ",".join(fuel_indexes)
+
+    # Type de véhicule
+    vehicle_type = ",".join(selected_vehicle_types) if selected_vehicle_types else ""
+
+    # Si aucune marque ou modèle n'est sélectionné, utiliser tous
+    if not selected_marques:
+        selected_marques = list(marques_modeles.keys())
+    if not selected_modeles:
+        selected_modeles = []
+        for marque in selected_marques:
+            selected_modeles.extend(marques_modeles[marque])
+
+    # Boucle pour chaque paire marque-modèle
+    df_occ_total = pd.DataFrame()
+    df_fra_total = pd.DataFrame()
+    for marque in selected_marques:
+        modeles = [modele for modele in selected_modeles if modele in marques_modeles[marque]]
+        if not modeles:
+            modeles = marques_modeles[marque]
+        for modele in modeles:
+            # Scraper la région sélectionnée
+            if search_area in ["Région sélectionnée", "Les deux"]:
+                df_occ = scrape_occitanie(
+                    prix_min, prix_max, marque, modele, annee_min, annee_max,
+                    doors, seats, owner_type, mileage_min, mileage_max, sort_by,
+                    order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code
+                )
+                df_occ['Marque'] = marque
+                df_occ['Modèle'] = modele
+                df_occ_total = pd.concat([df_occ_total, df_occ], ignore_index=True)
+
+            # Scraper la France
+            if search_area in ["France", "Les deux"]:
+                df_fra = scrape_france(
+                    prix_min, prix_max, marque, modele, annee_min, annee_max,
+                    doors, seats, owner_type, mileage_min, mileage_max, sort_by,
+                    order, vehicle_type, cv_min, cv_max
+                )
+                df_fra['Marque'] = marque
+                df_fra['Modèle'] = modele
+                df_fra_total = pd.concat([df_fra_total, df_fra], ignore_index=True)
+
+    # Sauvegarder les résultats
+    df_occ_total.to_excel("resultats_occitanie.xlsx", index=False)
+    df_fra_total.to_excel("resultats_france.xlsx", index=False)
+
+    # Comparaison des données
+    df_comparaison = compare_data(df_occ_total, df_fra_total)
+
+    st.success("Recherche terminée")
+
+    # Afficher les résultats
+    st.subheader("Résultats de la comparaison")
+    st.dataframe(df_comparaison)
+
+    # Bouton pour télécharger les résultats
+    csv = df_comparaison.to_csv(index=False)
+    st.download_button(
+        label="Télécharger les résultats",
+        data=csv,
+        file_name='resultats_comparaison.csv',
+        mime='text/csv',
+    )
 
 if __name__ == "__main__":
     main()
