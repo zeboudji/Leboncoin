@@ -1,28 +1,16 @@
 # scraping/leboncoinocc.py
 
-import sys
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import pandas as pd
-import time
-import re
+import requests
 from bs4 import BeautifulSoup
+import pandas as pd
+import re
 from urllib.parse import quote
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 def scrape_occitanie(
     prix_min, prix_max, marque, modele, annee_min, annee_max,
     doors, seats, owner_type, mileage_min, mileage_max, sort_by,
     order, vehicle_type, cv_min, cv_max, cv_din_min, cv_din_max, region_code
 ):
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--incognito")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
     params = {
         "category": "2",
         "locations": region_code,
@@ -49,12 +37,14 @@ def scrape_occitanie(
     query_string = "&".join([f"{key}={quote(str(value))}" for key, value in params.items() if value])
     url = f"{base_url}?{query_string}"
 
-    driver.get(url)
-    time.sleep(2)
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
 
     data = []
-    page_source = driver.page_source
-    soup = BeautifulSoup(page_source, 'html.parser')
     annonces = soup.find_all("a", {"data-qa-id": "aditem_container"})
 
     for annonce in annonces:
@@ -94,8 +84,6 @@ def scrape_occitanie(
             })
         except Exception as e:
             print(f"Erreur lors de l'extraction des données : {e}")
-
-    driver.quit()
 
     df = pd.DataFrame(data)
     return df
