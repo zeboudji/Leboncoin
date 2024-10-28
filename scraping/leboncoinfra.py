@@ -1,6 +1,5 @@
 # scraping/leboncoinfra.py
 
-import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import pandas as pd
@@ -8,16 +7,22 @@ import time
 import re
 from bs4 import BeautifulSoup
 from urllib.parse import quote
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options
 
 def scrape_france(
     prix_min, prix_max, marque, modele, annee_min, annee_max,
     doors, seats, owner_type, mileage_min, mileage_max, sort_by,
     order, vehicle_type, cv_min, cv_max
 ):
-    # Initialisation du driver
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(options=options)
+    # Initialisation du driver Chrome avec webdriver-manager
+    options = Options()
+    options.add_argument("--headless")  # Exécuter en mode headless pour le serveur
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--window-size=1920,1080")
+    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
     # Construction de l'URL
     params = {
@@ -44,7 +49,7 @@ def scrape_france(
     url = f"{base_url}?{query_string}"
 
     driver.get(url)
-    time.sleep(2)
+    time.sleep(2)  # Attendre le chargement de la page
 
     # Scraping
     data = []
@@ -69,7 +74,7 @@ def scrape_france(
             details_text = details_container.text.strip().split('·')
 
             annee = next((detail.strip() for detail in details_text if detail.strip().isdigit() and len(detail.strip()) == 4), None)
-            annee = int(annee) if annee else None
+            annee = int(re.sub(r'\D', '', annee)) if annee else None
 
             kilometrage = next((detail.strip() for detail in details_text if "km" in detail.strip()), None)
             kilometrage = int(re.sub(r'\D', '', kilometrage)) if kilometrage else None
@@ -104,4 +109,3 @@ if __name__ == "__main__":
         order="Ascendant", vehicle_type="berline", cv_min=0, cv_max=0
     )
     print(df)
-
