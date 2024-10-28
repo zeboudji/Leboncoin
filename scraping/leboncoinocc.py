@@ -26,8 +26,8 @@ def scrape_occitanie(
     params = {
         "category": "2",
         "locations": region_code,
-        "u_car_brand": marque,
-        "u_car_model": f"{marque}_{modele}",
+        "brand": marque.lower(),
+        "model": modele.lower(),
         "price": f"{prix_min}-{prix_max}",
         "regdate": f"{annee_min}-{annee_max}",
         "doors": doors,
@@ -55,22 +55,21 @@ def scrape_occitanie(
     data = []
     page_source = driver.page_source
     soup = BeautifulSoup(page_source, 'html.parser')
-    annonces = soup.find_all("p", {"data-qa-id": "aditem_title"})
+    annonces = soup.find_all("a", {"data-qa-id": "aditem_container"})
 
     for annonce in annonces:
         try:
-            titre = annonce.text.strip()
-            parent = annonce.find_parent("a")
-            lien = parent['href']
+            titre = annonce.find("p", {"data-qa-id": "aditem_title"}).text.strip()
+            lien = annonce['href']
             if not lien.startswith("http"):
                 lien = "https://www.leboncoin.fr" + lien
 
-            prix_text = parent.find("span", {"data-qa-id": "aditem_price"}).text
+            prix_text = annonce.find("span", {"data-qa-id": "aditem_price"}).text
             prix = int(re.sub(r'\D', '', prix_text))
 
-            localisation = parent.find("p", {"class": "text--body-2"}).text.strip()
+            localisation = annonce.find("p", {"data-qa-id": "aditem_location"}).text.strip()
 
-            details_container = parent.find("div", {"data-test-id": "ad-params"})
+            details_container = annonce.find("div", {"data-qa-id": "aditem_details_container"})
             details_text = details_container.text.strip().split('·') if details_container else []
 
             annee = next((detail.strip() for detail in details_text if detail.strip().isdigit() and len(detail.strip()) == 4), None)
